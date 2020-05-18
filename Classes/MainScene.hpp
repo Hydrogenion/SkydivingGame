@@ -14,7 +14,7 @@
 #include <time.h>
 #include "SoldierSprite.hpp"
 #include "ui/CocosGUI.h"
-
+#include "rsa.h"
 using namespace cocos2d;
 class MainScene : public Layer,cocos2d::ui::EditBoxDelegate{
 public:

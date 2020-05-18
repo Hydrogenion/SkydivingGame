@@ -266,6 +266,15 @@ void MainScene::editBoxTextChanged(cocos2d::ui::EditBox *editBox,const std::stri
 
 void MainScene::initRSA(){
     //generate N
+//    cipher a;
+    RSA rsa;
+    rsa.generateKey(1024);
+    std::string bk = rsa.getPublicKey();
+    std::string vk = rsa.getPrivateKey();
+    auto cipher = rsa.encryption("ABCDEDFG123");
+    std::cout<<cipher<<std::endl;
+    auto plainText = rsa.decryption(cipher);
+    std::cout<<plainText<<std::endl;
     N = "";
     return;
 }
