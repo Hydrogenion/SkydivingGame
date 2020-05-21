@@ -13,8 +13,11 @@
 #include <iostream>
 #include <time.h>
 #include "SoldierSprite.hpp"
+#include "BoxSprite.hpp"
 #include "ui/CocosGUI.h"
-#include "rsa.h"
+#include "bigint.h"
+
+
 using namespace cocos2d;
 class MainScene : public Layer,cocos2d::ui::EditBoxDelegate{
 public:
@@ -33,29 +36,41 @@ public:
     virtual void editBoxReturn(cocos2d::ui::EditBox *editBox);
     
     //在这里初始化你的函数
-    void initRSA();
+    void initRSA(int keyLen);
     void initMillionaire();
     void initVoting();
     void intiKeySharing();
+    void initSoldierSprite();
     
     //RSA的部分
     std::vector<std::string> rsaGenerateKey(int keyLen);
     std::vector<std::vector<std::string>> gengerateKeysAGroup(int groupSize);
-    std::vector<std::string> getAllPublicKey(std::vector<std::vector<std::string>> keysPV);
+    std::vector<std::string> getAllPublicKeyE(std::vector<std::vector<std::string>> keysPV);
+    std::vector<std::string> getAllPublicKeyN(std::vector<std::vector<std::string>> keysPV);
     
     // Millionaire部分
     void millionaireMain();
+    
+    //utils
+    void info_print(std::string str);
+    static void *threadFunction(void *args);
 
     
 private:
     std::map<cocos2d::EventKeyboard::KeyCode, bool> keys;
     Vector<SoldierSprite*> soldierBlue;
     Vector<SoldierSprite*> soldierRed;
+    Vector<SoldierSprite*> soldierAll;
     Vector<Label*> infoBlue;
     int count = 0;
     bool editingMode = false;
     std::string messageToSend = "";
-    std::string N;
+    Label *infoLabel;
+    std::string infoText = "";
+    BigInt P;
+    BigInt Q;
+    BigInt N;
+    BigInt fai;
 };
 
 #endif /* MainScene_hpp */

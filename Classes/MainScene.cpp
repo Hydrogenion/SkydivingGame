@@ -6,6 +6,11 @@
 //
 
 #include "MainScene.hpp"
+#include "utils.h"
+#include "pthread.h"
+#include <ctime>
+#define OFFSET_Y 200
+
 Scene* MainScene::createscene()   //架构我的场景
 {
     auto scene = Scene::create();            //先申请场景
@@ -41,56 +46,18 @@ bool MainScene::init()  //实现myfistscene的层
     
     
     // add "HelloWorld" splash screen"
-    auto sprite = Sprite::create("Background.jpg");
+    auto background = Sprite::create("Background.jpg");
     // position the sprite on the center of the screen
-    sprite->setPosition(Vec2(VisibleSize.width/2 + origin.x, VisibleSize.height/2 + origin.y));
-    this->addChild(sprite, 0);
-
-    initRSA();
+    background->setPosition(Vec2(VisibleSize.width/2 + origin.x, VisibleSize.height/2 + origin.y));
+    this->addChild(background, 0);
     
-    //生成蓝军的密钥
-    auto keysOfBlue = gengerateKeysAGroup(10);
-    auto publicKeyOfBlue = getAllPublicKey(keysOfBlue);
-    auto keysOfRed = gengerateKeysAGroup(10);
-    auto publicKeyOfRed = getAllPublicKey(keysOfRed);
-    
-    //生成蓝军
-    for (int i=0;i<10;i++){
-        auto spriteSoldier = SoldierSprite::create("soldier1.png",Rect(0,0,32,32));
-        spriteSoldier->setPosition(Vec2(int(rand()%1080),int(rand()%720)));
-        spriteSoldier->info = Label::createWithSystemFont("", "fonts/arial.ttf", 13);
-        spriteSoldier->info->setColor(Color3B(0,0,0));
-        spriteSoldier->info->setString(std::string("Rank: ")+spriteSoldier->getRankS());
-    spriteSoldier->info->setPosition(Vec2(spriteSoldier->getPosition().x,spriteSoldier->getPosition().y-25));
-        //生成每个人公钥 与 私钥
-        auto keyVec = rsaGenerateKey(1024);
-        spriteSoldier->setPublicKey(keysOfBlue[i][0]);
-        spriteSoldier->setPrivateKey(keysOfBlue[i][1]);
-        spriteSoldier->setPublicKeys(publicKeyOfBlue);
-        
-        //将当前精灵放入队伍
-        soldierBlue.pushBack(spriteSoldier);
-//        infoBlue.pushBack(info);
-        this->addChild(spriteSoldier,1);
-        this->addChild(spriteSoldier->info,2);
-    }
-    //生成红军
-    for (int i=0;i<10;i++){
-        auto spriteSoldier = SoldierSprite::create("soldier2.png",Rect(0,0,32,32));
-        spriteSoldier->setPosition(Vec2(int(rand()%1080),int(rand()%720)));
-        //生成每个人公钥 与 私钥
-        auto keyVec = rsaGenerateKey(1024);
-        spriteSoldier->setPublicKey(keyVec[0]);
-        spriteSoldier->setPrivateKey(keyVec[1]);
-        //将当前精灵放入队伍
-        soldierRed.pushBack(spriteSoldier);
-        this->addChild(spriteSoldier,1);
-    }
-    
-    //生成宝箱
-    auto spriteBox = Sprite::create("box.png",Rect(0,0,13,12));
-    spriteBox->setPosition(Vec2(int(rand()%1080),int(rand()%720)));
-    this->addChild(spriteBox,1);
+    infoLabel = Label::createWithSystemFont("", "fonts/arial.ttf", 13);
+    infoLabel->setPosition(Vec2(545,90));
+    infoLabel->setColor(Color3B(0,0,0));
+    infoLabel->setAlignment(TextHAlignment::LEFT);
+    infoLabel->setWidth(1000);
+    infoLabel->setHeight(130);
+    this->addChild(infoLabel,1);
     
     // 键盘事件
     auto listener = EventListenerKeyboard::create();
@@ -116,16 +83,26 @@ bool MainScene::init()  //实现myfistscene的层
         float cursorX = e->getCursorX();
         float cursorY = e->getCursorY();
         int id = 0;
-        for (auto soldier : soldierBlue){
+    
+        for (auto soldier : soldierAll){
             if ((cursorX>soldier->getPosition().x-16) && (cursorX<soldier->getPosition().x+16) && (cursorY>soldier->getPosition().y-16) && (cursorY<soldier->getPosition().y+16))
             {
-                // encryption
-                std::string ciperText = soldierBlue.front()->rsaEncryption(messageToSend,N,id);
+                std::string ciperText = messageToSend;
+                std::string plainText = ciperText;
+                if (messageToSend=="auth")
+                {
+                    std::string txt = soldier->sendIdentification();
+                    bool flag = soldierBlue.front()->recieveIdentification(txt, soldier->getID()-'a');
+                    if (flag==true){
+                        soldier->setTexture("soldier1.png");
+                        soldier->setTextureRect(Rect(0,0,32,32));
+                    }
+                    else {
+                        soldier->setTexture("soldier2.png");
+                        soldier->setTextureRect(Rect(0,0,32,32));
+                    }
+                }
                 
-                // decryption
-                std::string plainText = soldier->rsaDecryption(ciperText, N);
-                
-                // messageProcess
                 soldier->messageProcess(plainText,soldierBlue.front()->getPosition());
                 
                 labelCiper->setString(ciperText);
@@ -152,12 +129,85 @@ bool MainScene::init()  //实现myfistscene的层
     this->scheduleUpdate();
     this->addChild(editBox,2);
 
-
-
-    
     return true;
 }
- 
+void MainScene::initSoldierSprite(){
+    //生成蓝军的密钥
+    info_print("Start gengerate keys of blue");
+    clock_t startTime, endTime;
+    startTime = clock();
+    auto keysOfBlue = gengerateKeysAGroup(10);
+    auto publicKeyOfBlueE = getAllPublicKeyE(keysOfBlue);
+    auto publicKeyOfBlueN = getAllPublicKeyN(keysOfBlue);
+    endTime = clock();
+    info_print("Time cost:"+std::to_string((double)(endTime - startTime) / CLOCKS_PER_SEC));
+    //生成红军的密钥
+    info_print("Start gengerate keys of red");
+    startTime = clock();
+    auto keysOfRed = gengerateKeysAGroup(10);
+    auto publicKeyOfRedE = getAllPublicKeyE(keysOfBlue);
+    auto publicKeyOfRedN = getAllPublicKeyN(keysOfBlue);
+    endTime = clock();
+    info_print("Time cost:"+std::to_string((double)(endTime - startTime) / CLOCKS_PER_SEC));
+    
+    info_print("Gengerate blue troops");
+    //生成蓝军
+    for (int i=0;i<10;i++){
+        auto spriteSoldier = SoldierSprite::create("unknown.png",Rect(0,0,32,32));
+        spriteSoldier->setPosition(Vec2(int(rand()%1080),int(rand()%720)+OFFSET_Y));
+        spriteSoldier->info = Label::createWithSystemFont("", "fonts/arial.ttf", 13);
+        spriteSoldier->info->setColor(Color3B(0,0,0));
+        spriteSoldier->info->setString("");
+        //        spriteSoldier->info->setString(std::string("Rank: ")+spriteSoldier->getRankS());
+        spriteSoldier->info->setPosition(Vec2(spriteSoldier->getPosition().x,spriteSoldier->getPosition().y-25));
+        //生成每个人公钥 与 私钥
+        spriteSoldier->setPublicKeyN(keysOfBlue[i][0]);
+        spriteSoldier->setPublicKeyE(keysOfBlue[i][1]);
+        spriteSoldier->setPrivateKeyD(keysOfBlue[i][2]);
+        spriteSoldier->setPublicKeysE(publicKeyOfBlueE);
+        spriteSoldier->setPublicKeysN(publicKeyOfBlueN);
+        spriteSoldier->setId('a' + i);
+        
+        //将当前精灵放入队伍
+        soldierBlue.pushBack(spriteSoldier);
+        soldierAll.pushBack(spriteSoldier);
+        //        infoBlue.pushBack(info);
+        this->addChild(spriteSoldier,1);
+        this->addChild(spriteSoldier->info,2);
+    }
+    info_print("Gengerate red troops");
+    //生成红军
+    for (int i=0;i<10;i++){
+        auto spriteSoldier = SoldierSprite::create("unknown.png",Rect(0,0,32,32));
+        spriteSoldier->setPosition(Vec2(int(rand()%1080),int(rand()%720)+OFFSET_Y));
+        spriteSoldier->info = Label::createWithSystemFont("", "fonts/arial.ttf", 13);
+        spriteSoldier->info->setColor(Color3B(0,0,0));
+        spriteSoldier->info->setString("");
+        spriteSoldier->info->setPosition(Vec2(spriteSoldier->getPosition().x,spriteSoldier->getPosition().y-25));
+        //生成每个人公钥 与 私钥
+        spriteSoldier->setPublicKeyN(keysOfRed[i][0]);
+        spriteSoldier->setPublicKeyE(keysOfRed[i][1]);
+        spriteSoldier->setPrivateKeyD(keysOfRed[i][2]);
+        spriteSoldier->setPublicKeysE(publicKeyOfRedE);
+        spriteSoldier->setPublicKeysN(publicKeyOfRedN);
+        spriteSoldier->setId('a' + i);
+        //将当前精灵放入队伍
+        soldierRed.pushBack(spriteSoldier);
+        soldierAll.pushBack(spriteSoldier);
+        this->addChild(spriteSoldier,1);
+    }
+    //生成主角
+    soldierBlue.front()->setTexture("soldier1.png");
+    soldierBlue.front()->setTextureRect(Rect(0,0,32,32));
+    
+    info_print("Gengerate boxs");
+    //生成宝箱
+    auto spriteBox = BoxSprite::create("box.png",Rect(0,0,13,12));
+    spriteBox->setPosition(Vec2(int(rand()%1080),int(rand()%720)+OFFSET_Y));
+    this->addChild(spriteBox,1);
+    
+    info_print("You are the blue guy");
+}
 void MainScene::comeback(Ref * Psendeer)//回调函数
 {
     Director::getInstance()->replaceScene(MainScene::createscene());//切换至mysecondscene场景
@@ -186,6 +236,7 @@ void MainScene::update(float delta){
     for (auto soldier : soldierBlue){
         soldier->info->setPosition(Vec2(soldier->getPosition().x,soldier->getPosition().y-25));
     }
+    infoLabel->setString(infoText);
     Node::update(delta);
 }
 
@@ -206,7 +257,7 @@ void MainScene::keyPressedDuration(EventKeyboard::KeyCode code) {
     Vec2 pos = soldierBlue.front()->getPosition();
     switch (code) {
         case EventKeyboard::KeyCode::KEY_W:
-            if ((pos.y>=720-16) || editingMode==true)
+            if ((pos.y>=720-16+OFFSET_Y) || editingMode==true)
                 break;
             soldierBlue.front()->setPosition(Vec2(pos.x,pos.y+soldierBlue.front()->getSpeed()));
             break;
@@ -244,7 +295,12 @@ void MainScene::editBoxReturn(cocos2d::ui::EditBox *editBox)
 {
     log("editbox return");
     messageToSend = editBox->getText();
-    editBox->setText("");
+    
+    if (messageToSend=="init" && soldierAll.size()==0){
+        initRSA(1024);
+        pthread_t tid;
+        pthread_create(&tid, NULL, &threadFunction, this);
+    }
 }
 void MainScene::editBoxTextChanged(cocos2d::ui::EditBox *editBox,const std::string &text)
 {
@@ -264,27 +320,27 @@ void MainScene::editBoxTextChanged(cocos2d::ui::EditBox *editBox,const std::stri
     }
 }
 
-void MainScene::initRSA(){
-    //generate N
-//    cipher a;
-    RSA rsa;
-    rsa.generateKey(1024);
-    std::string bk = rsa.getPublicKey();
-    std::string vk = rsa.getPrivateKey();
-    auto cipher = rsa.encryption("ABCDEDFG123");
-    std::cout<<cipher<<std::endl;
-    auto plainText = rsa.decryption(cipher);
-    std::cout<<plainText<<std::endl;
-    N = "";
+void MainScene::initRSA(int keyLen){
+    P = generatePrime(keyLen / 2);
+    Q = generatePrime(keyLen / 2);
+    while (P == Q) Q = generatePrime(keyLen / 2);
+    N = P * Q;
+    fai = (P - BigInt("1")) * (Q - BigInt("1"));
     return;
 }
 
 std::vector<std::string> MainScene::rsaGenerateKey(int keyLen){
     std::vector<std::string> vec;
-    std::string publicKey ="p";
-    std::string privateKey ="v";
-    vec.push_back(publicKey);
-    vec.push_back(privateKey);
+    BigInt D, E;
+    E = randomBigInteger(rand() % (keyLen));
+    while (!(gcd(E, fai) == BigInt("1")))
+    E = E + BigInt("2");
+    D = modReverse(E, fai);
+    
+    vec.push_back(to_string_hex(N));
+    vec.push_back(to_string_hex(E));
+    vec.push_back(to_string_hex(D));
+    
     return vec;
 }
 
@@ -297,14 +353,29 @@ std::vector<std::vector<std::string>> MainScene::gengerateKeysAGroup(int groupSi
     return keys;
 }
 
-std::vector<std::string> MainScene::getAllPublicKey(std::vector<std::vector<std::string>> keysPV){
+std::vector<std::string> MainScene::getAllPublicKeyE(std::vector<std::vector<std::string>> keysPV){
     std::vector<std::string> keyOfPublicKey;
     for (auto key : keysPV){
-        keyOfPublicKey.push_back(key[0]);
+        keyOfPublicKey.push_back(key[1]);
     }
     return keyOfPublicKey;
 }
 
+std::vector<std::string> MainScene::getAllPublicKeyN(std::vector<std::vector<std::string>> keysPV) {
+    std::vector<std::string> keyOfPublicKey;
+    for (auto key : keysPV) {
+        keyOfPublicKey.push_back(key[0]);
+    }
+    return keyOfPublicKey;
+}
+void MainScene::info_print(std::string str){
+    infoText+=str;
+    infoText+='\n';
+}
+void* MainScene::threadFunction(void *arg){
+    MainScene *ptr = (MainScene*)arg;
+    ptr->initSoldierSprite();
+}
 
 //备用代码
 //    textField->setTextHorizontalAlignment(cocos2d::TextHAlignment::LEFT);

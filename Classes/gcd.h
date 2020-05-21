@@ -1,6 +1,6 @@
 #ifndef GCD_H
 #define GCD_H
-#include "bigint.h"
+//#include "bigint.h"
 
 //BigInt gcd(BigInt a, BigInt b) {
 //    return b==BigInt("0")?a:gcd(b,a%b);
