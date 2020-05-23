@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "pthread.h"
 #include <ctime>
+#include "math.h"
 #define OFFSET_Y 200
 
 Scene* MainScene::createscene()   //架构我的场景
@@ -112,11 +113,39 @@ bool MainScene::init()  //实现myfistscene的层
             }
             id++;
         }
+        
+        for (auto box: Boxs){
+            std::vector<double> idInfo;
+            std::vector<double> shareKeyInfo;
+            
+            if ((cursorX>box->getPosition().x-15) && (cursorX<box->getPosition().x+15) && (cursorY>box->getPosition().y-15) && (cursorY<box->getPosition().y+15))
+            {
+                double box_x = box->getPosition().x;
+                double box_y = box->getPosition().y;
+                for (auto soldier : soldierAll){
+                    float soldier_x = soldier->getPosition().x;
+                    float soldier_y = soldier->getPosition().y;
+                    float dis = sqrt((box_x-soldier_x)*(box_x-soldier_x)+(box_y-soldier_y)*(box_y-soldier_y));
+                    if (dis<20){
+                        idInfo.push_back(soldier->getID()-'a');
+                        shareKeyInfo.push_back(soldier->getShareKey());
+                    }
+                }
+                if (box->isOpen(idInfo, shareKeyInfo))
+                {
+                    box->setTexture("boxopen.png");
+                }
+                std::cout<<Boxs.getIndex(box)<<":"<<box->isOpen(idInfo, shareKeyInfo)<<std::endl;
+            }
+        }
     };
     
     mouseListener->onMouseUp = [=] (Event * event){
-        log("mouse up");
+//        log("mouse up");
     };
+    
+    // initBox
+    initBox();
     
     _eventDispatcher->addEventListenerWithSceneGraphPriority(mouseListener, this);
     
@@ -167,6 +196,7 @@ void MainScene::initSoldierSprite(){
         spriteSoldier->setPublicKeysE(publicKeyOfBlueE);
         spriteSoldier->setPublicKeysN(publicKeyOfBlueN);
         spriteSoldier->setId('a' + i);
+        spriteSoldier->setShareKey(Boxs.front()->generateShareKey(spriteSoldier->getID()-'a'));
         
         //将当前精灵放入队伍
         soldierBlue.pushBack(spriteSoldier);
@@ -191,6 +221,7 @@ void MainScene::initSoldierSprite(){
         spriteSoldier->setPublicKeysE(publicKeyOfRedE);
         spriteSoldier->setPublicKeysN(publicKeyOfRedN);
         spriteSoldier->setId('a' + i);
+        spriteSoldier->setShareKey(Boxs.back()->generateShareKey(spriteSoldier->getID()-'a'));
         //将当前精灵放入队伍
         soldierRed.pushBack(spriteSoldier);
         soldierAll.pushBack(spriteSoldier);
@@ -200,12 +231,14 @@ void MainScene::initSoldierSprite(){
     soldierBlue.front()->setTexture("soldier1.png");
     soldierBlue.front()->setTextureRect(Rect(0,0,32,32));
     
-    info_print("Gengerate boxs");
-    //生成宝箱
-    auto spriteBox = BoxSprite::create("box.png",Rect(0,0,13,12));
-    spriteBox->setPosition(Vec2(int(rand()%1080),int(rand()%720)+OFFSET_Y));
-    this->addChild(spriteBox,1);
-    
+//    std::vector<double> idInfo;
+//    std::vector<double> shareKeyInfo;
+//    for (int kk=0;kk<5;kk++){
+//        idInfo.push_back(soldierBlue.at(kk)->getID()-'a');
+//        shareKeyInfo.push_back(soldierBlue.at(kk)->getShareKey());
+//    }
+//    std::cout<<Boxs.at(0)->isOpen(idInfo, shareKeyInfo)<<std::endl;
+//    std::cout<<Boxs.at(1)->isOpen(idInfo, shareKeyInfo)<<std::endl;
     info_print("You are the blue guy");
 }
 void MainScene::comeback(Ref * Psendeer)//回调函数
@@ -375,6 +408,23 @@ void MainScene::info_print(std::string str){
 void* MainScene::threadFunction(void *arg){
     MainScene *ptr = (MainScene*)arg;
     ptr->initSoldierSprite();
+}
+
+void MainScene::initBox(){
+    info_print("Gengerate boxs");
+    //生成宝箱
+    for(int i=0;i<2;i++){
+        auto spriteBox = BoxSprite::create("boxclose.png",Rect(0,0,31,31));
+        spriteBox->setPosition(Vec2(int(rand()%1080),int(rand()%720)+OFFSET_Y));
+        this->addChild(spriteBox,1);
+        Boxs.pushBack(spriteBox);
+        
+        std::vector<double >coefficientInfo;
+        for(int j = 0; j < 5; ++j) {
+            coefficientInfo.push_back(double(rand() % 100 + 1));
+        }
+        spriteBox->setCoefficientInfo(coefficientInfo);
+    }
 }
 
 //备用代码

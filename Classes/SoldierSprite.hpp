@@ -25,6 +25,7 @@ public:
     void setPublicKeysN(std::vector<std::string> _publicKeysN) {publicKeysN = _publicKeysN;}
     void setPublicKeysE(std::vector<std::string> _publicKeysE) { publicKeysE = _publicKeysE; }
     void setId(int _id) { id = _id; }
+    void setShareKey(double _shareKey) {shareKey = _shareKey;}
     
     int getSpeed(){return speed;}
     int getRank(){return rank;}
@@ -32,6 +33,7 @@ public:
     std::string getPrivateKeyD() {return privateKeyD; }
     std::string getPublicKeyN() {return publicKeyN; }
     std::string getPublicKeyE() { return publicKeyE; }
+    double getShareKey() {return shareKey;}
     int getID(){return id;}
     Label* info;
     
@@ -49,6 +51,7 @@ private:
     int speed;
     bool commander;
     int id;
+    double shareKey;
     std::string privateKeyD;
     std::string publicKeyN;
     std::string publicKeyE;

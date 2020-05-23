@@ -39,7 +39,7 @@ public:
     void initRSA(int keyLen);
     void initMillionaire();
     void initVoting();
-    void intiKeySharing();
+    void initBox();
     void initSoldierSprite();
     
     //RSA的部分
@@ -61,6 +61,7 @@ private:
     Vector<SoldierSprite*> soldierBlue;
     Vector<SoldierSprite*> soldierRed;
     Vector<SoldierSprite*> soldierAll;
+    Vector<BoxSprite*> Boxs;
     Vector<Label*> infoBlue;
     int count = 0;
     bool editingMode = false;
