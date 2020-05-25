@@ -54,6 +54,8 @@ public:
     //utils
     void info_print(std::string str);
     static void *threadFunction(void *args);
+    static void* threadFunctionMillionaire(void *arg);
+
 
     
 private:

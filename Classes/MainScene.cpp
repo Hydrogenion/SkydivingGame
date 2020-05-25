@@ -127,7 +127,7 @@ bool MainScene::init()  //实现myfistscene的层
                     float soldier_y = soldier->getPosition().y;
                     float dis = sqrt((box_x-soldier_x)*(box_x-soldier_x)+(box_y-soldier_y)*(box_y-soldier_y));
                     if (dis<20){
-                        idInfo.push_back(soldier->getID()-'a');
+                        idInfo.push_back(soldier->getID()-'a'+1);
                         shareKeyInfo.push_back(soldier->getShareKey());
                     }
                 }
@@ -161,6 +161,8 @@ bool MainScene::init()  //实现myfistscene的层
     return true;
 }
 void MainScene::initSoldierSprite(){
+    int min_rank = 1;
+    int max_rank = 3;
     //生成蓝军的密钥
     info_print("Start gengerate keys of blue");
     clock_t startTime, endTime;
@@ -181,7 +183,8 @@ void MainScene::initSoldierSprite(){
     
     info_print("Gengerate blue troops");
     //生成蓝军
-    for (int i=0;i<10;i++){
+    int num_of_blue = 10;
+    for (int i=0;i<num_of_blue;i++){
         auto spriteSoldier = SoldierSprite::create("unknown.png",Rect(0,0,32,32));
         spriteSoldier->setPosition(Vec2(int(rand()%1080),int(rand()%720)+OFFSET_Y));
         spriteSoldier->info = Label::createWithSystemFont("", "fonts/arial.ttf", 13);
@@ -196,7 +199,11 @@ void MainScene::initSoldierSprite(){
         spriteSoldier->setPublicKeysE(publicKeyOfBlueE);
         spriteSoldier->setPublicKeysN(publicKeyOfBlueN);
         spriteSoldier->setId('a' + i);
-        spriteSoldier->setShareKey(Boxs.front()->generateShareKey(spriteSoldier->getID()-'a'));
+        spriteSoldier->setRank(rand() % (max_rank - min_rank + 1) + min_rank);
+        spriteSoldier->setMaxRank(max_rank);
+        spriteSoldier->setTotal(num_of_blue);
+        spriteSoldier->setShareKey(Boxs.front()->generateShareKey(spriteSoldier->getID()-'a'+1));
+        spriteSoldier->setSoldierGroup(&soldierBlue);
         
         //将当前精灵放入队伍
         soldierBlue.pushBack(spriteSoldier);
@@ -207,7 +214,8 @@ void MainScene::initSoldierSprite(){
     }
     info_print("Gengerate red troops");
     //生成红军
-    for (int i=0;i<10;i++){
+    int num_of_red = 10;
+    for (int i=0;i<num_of_red;i++){
         auto spriteSoldier = SoldierSprite::create("unknown.png",Rect(0,0,32,32));
         spriteSoldier->setPosition(Vec2(int(rand()%1080),int(rand()%720)+OFFSET_Y));
         spriteSoldier->info = Label::createWithSystemFont("", "fonts/arial.ttf", 13);
@@ -221,7 +229,13 @@ void MainScene::initSoldierSprite(){
         spriteSoldier->setPublicKeysE(publicKeyOfRedE);
         spriteSoldier->setPublicKeysN(publicKeyOfRedN);
         spriteSoldier->setId('a' + i);
-        spriteSoldier->setShareKey(Boxs.back()->generateShareKey(spriteSoldier->getID()-'a'));
+        spriteSoldier->setRank(rand() % (max_rank - min_rank + 1) + min_rank);
+        spriteSoldier->setMaxRank(max_rank);
+        spriteSoldier->setTotal(num_of_red);
+
+    spriteSoldier->setShareKey(Boxs.back()->generateShareKey(spriteSoldier->getID()-'a'+1));
+        spriteSoldier->setSoldierGroup(&soldierRed);
+
         //将当前精灵放入队伍
         soldierRed.pushBack(spriteSoldier);
         soldierAll.pushBack(spriteSoldier);
@@ -231,14 +245,34 @@ void MainScene::initSoldierSprite(){
     soldierBlue.front()->setTexture("soldier1.png");
     soldierBlue.front()->setTextureRect(Rect(0,0,32,32));
     
-//    std::vector<double> idInfo;
-//    std::vector<double> shareKeyInfo;
+    std::vector<double> idInfo;
+    std::vector<double> shareKeyInfo;
 //    for (int kk=0;kk<5;kk++){
 //        idInfo.push_back(soldierBlue.at(kk)->getID()-'a');
 //        shareKeyInfo.push_back(soldierBlue.at(kk)->getShareKey());
 //    }
 //    std::cout<<Boxs.at(0)->isOpen(idInfo, shareKeyInfo)<<std::endl;
 //    std::cout<<Boxs.at(1)->isOpen(idInfo, shareKeyInfo)<<std::endl;
+    for(int kk=0;kk<100;kk++){
+        int i=0;
+        int j=0;
+        idInfo.clear();
+        shareKeyInfo.clear();
+        for (i = 0; i < kk/10; i++)
+        {
+            idInfo.push_back(soldierBlue.at(i)->getID()-'a'+1);
+            shareKeyInfo.push_back(soldierBlue.at(i)->getShareKey());
+        }
+        for (j = 0; j < kk%10; j++)
+        {
+            idInfo.push_back(soldierRed.at(j)->getID()-'a'+1);
+            shareKeyInfo.push_back(soldierRed.at(j)->getShareKey());
+        }
+        cout << "Blue:" << i << " Reds: " << j << endl;
+        cout << "Blue box" << Boxs.front()->isOpen(idInfo, shareKeyInfo) << endl;
+        cout << "Red  box" << Boxs.back()->isOpen(idInfo, shareKeyInfo) << endl;
+    }
+    
     info_print("You are the blue guy");
 }
 void MainScene::comeback(Ref * Psendeer)//回调函数
@@ -332,7 +366,15 @@ void MainScene::editBoxReturn(cocos2d::ui::EditBox *editBox)
     if (messageToSend=="init" && soldierAll.size()==0){
         initRSA(1024);
         pthread_t tid;
+//        pthread_t tid_2;
         pthread_create(&tid, NULL, &threadFunction, this);
+//        pthread_create(&tid_2, NULL, &threadFunctionMillionaire, this);
+
+    }
+    if (messageToSend=="boss" && soldierBlue.size()!=0){
+        pthread_t tid;
+//        pthread_create(&tid, NULL, &threadFunctionMillionaire, this);
+        millionaireMain();
     }
 }
 void MainScene::editBoxTextChanged(cocos2d::ui::EditBox *editBox,const std::string &text)
@@ -410,6 +452,11 @@ void* MainScene::threadFunction(void *arg){
     ptr->initSoldierSprite();
 }
 
+void* MainScene::threadFunctionMillionaire(void *arg){
+    MainScene *ptr = (MainScene*)arg;
+    ptr->millionaireMain();
+}
+
 void MainScene::initBox(){
     info_print("Gengerate boxs");
     //生成宝箱
@@ -427,6 +474,42 @@ void MainScene::initBox(){
     }
 }
 
+void MainScene::millionaireMain(){
+    while (1) {
+        int select = rand() % soldierBlue.size();
+        if (soldierBlue.at(select)->_act == 0)
+            continue;
+        int result = soldierBlue.at(select)->compare_once();
+        if (result != -1) {
+            vector<int> candidate, voter;
+            candidate.push_back(result);
+            for (set<int>::iterator it = soldierBlue.at(result)->equal_soldiers.begin(); it != soldierBlue.at(result)->equal_soldiers.end(); ++it)
+                candidate.push_back(*it);
+            sort(candidate.begin(), candidate.end());
+            for (int i = 0; i < soldierBlue.size(); ++i) {
+                if (find(candidate.begin(), candidate.end(), i) == candidate.end())
+                    voter.push_back(i);
+            }
+            cout << "candidate: ";
+            for (auto i : candidate)
+                cout << i << ' ';
+            cout << endl;
+            cout << "rank: ";
+            for (auto i: candidate)
+                cout<< soldierBlue.at(i)->getRank() << ' ';
+            cout <<endl;
+            cout << "voter: ";
+            for (auto i : voter)
+                cout << i << ' ';
+            cout << endl;
+            break;
+            
+        }
+    }
+    for (int i = 0; i < soldierBlue.size(); ++i) {
+        printf("Soldier %d: %d\n", i, soldierBlue.at(i)->getRank());
+    }
+}
 //备用代码
 //    textField->setTextHorizontalAlignment(cocos2d::TextHAlignment::LEFT);
 //

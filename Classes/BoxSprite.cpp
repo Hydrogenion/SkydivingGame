@@ -17,8 +17,8 @@ BoxSprite::BoxSprite()
 
 bool Lagrange(std::vector<double> funcInfo, std::vector<std::vector<double> > soldierInfo)
 {
-    std::vector<int> x(soldierInfo[0].begin(), soldierInfo[0].begin() + funcInfo[1] + 1);
-    std::vector<int> y(soldierInfo[1].begin(), soldierInfo[1].begin() + funcInfo[1] + 1);
+    std::vector<int> x(soldierInfo[0].begin(), soldierInfo[0].end());
+    std::vector<int> y(soldierInfo[1].begin(), soldierInfo[1].end());
     double fix_x = 0;
     double result = 0;
     for (int i = 0; i < x.size(); ++i){
@@ -54,8 +54,8 @@ double DifferenceQuotient(int n, std::vector<double>& x, std::vector<double>& y)
 }
 
 bool Newton(std::vector<double> funcInfo, std::vector<std::vector<double> > soldierInfo){
-    std::vector<double> x(soldierInfo[0].begin(), soldierInfo[0].begin() + funcInfo[1] + 1);
-    std::vector<double> y(soldierInfo[1].begin(), soldierInfo[1].begin() + funcInfo[1] + 1);
+    std::vector<double> x(soldierInfo[0].begin(), soldierInfo[0].end());
+    std::vector<double> y(soldierInfo[1].begin(), soldierInfo[1].end());
 //    for (int i=0; i<x.size(); ++i){
 //        cout << x[i]<<endl;
 //    }
@@ -115,7 +115,7 @@ bool BoxSprite::isOpen(std::vector<double> idInfo, std::vector<double> shareKeyI
 
 double BoxSprite::generateShareKey(double id){
     double y = 0.0;
-    for (int j=0; j < coefficientInfo.size()-1; ++j){
+    for (int j=0; j < coefficientInfo.size(); ++j){
         y += coefficientInfo[j] * pow(id, j);
     }
     return y;

@@ -24,11 +24,15 @@ public:
     void setPublicKeyE(std::string _publicKeyE) { publicKeyE = _publicKeyE; }
     void setPublicKeysN(std::vector<std::string> _publicKeysN) {publicKeysN = _publicKeysN;}
     void setPublicKeysE(std::vector<std::string> _publicKeysE) { publicKeysE = _publicKeysE; }
-    void setId(int _id) { id = _id; }
+    void setId(int _id) { id = _id; _index = id-'a'; }
     void setShareKey(double _shareKey) {shareKey = _shareKey;}
+    void setRank(int rank) {_rank = rank;}
+    void setMaxRank(int max_rank) {_max_rank = max_rank;}
+    void setTotal(int total) {_total = total;}
+    void setSoldierGroup(Vector<SoldierSprite*> *ptr){soldiers = ptr;}
     
     int getSpeed(){return speed;}
-    int getRank(){return rank;}
+    int getRank(){return _rank;}
     std:: string getRankS() {return std::to_string(rank);}
     std::string getPrivateKeyD() {return privateKeyD; }
     std::string getPublicKeyN() {return publicKeyN; }
@@ -40,10 +44,31 @@ public:
     std::string rsaEncryption(std::string plainText, int id);
     std::string rsaDecryption(std::string ciperText);
     
+    BigInt rsaEncryptionBigInt(BigInt plainText, int id);
+    BigInt rsaDecryptionBigInt(BigInt ciperText);
+
+    
     std::string sendIdentification();
     bool recieveIdentification(std::string ciperText, int id);
     
     void messageProcess(std::string msg,Vec2 Pos);
+    
+    
+    int compare_once();
+    bool require_comparison();
+    //millionaire
+    static int compare(SoldierSprite& A, SoldierSprite& B, int index_A, int index_B);
+    BigInt step1(int to_index);
+    std::vector<BigInt> step2(BigInt);
+    bool step3(std::vector<BigInt>);
+    
+    int _act = 1;
+    int _total;
+    int _index;
+    int _max_rank;
+    Vector<SoldierSprite*> * soldiers;
+    std::set<int> equal_soldiers;
+    std::set<int> lower_soldiers;
 
 
 private:
@@ -57,5 +82,10 @@ private:
     std::string publicKeyE;
     std::vector<std::string> publicKeysN;
     std::vector<std::string> publicKeysE;
+    
+    int _rank;
+    BigInt _r;
+    BigInt _p = BigInt(29);
+
 };
 #endif /* SoldierSprite_hpp */
